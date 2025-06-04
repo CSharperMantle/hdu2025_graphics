@@ -5,7 +5,7 @@ from enum import Enum, IntEnum, auto
 import numpy as np
 import numpy.typing as npt
 
-Position = tuple[int, int, int]  # (x, z, y)
+VecXZY = tuple[int, int, int]  # (x, z, y)
 
 
 class TetrominoShape(IntEnum):
@@ -33,7 +33,7 @@ class MoveDir(IntEnum):
 
 
 class Tetromino:
-    SHAPES: dict[TetrominoShape, list[Position]] = {
+    SHAPES: dict[TetrominoShape, list[VecXZY]] = {
         TetrominoShape.I: [(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)],
         TetrominoShape.O: [(0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0)],
         TetrominoShape.T: [(0, 0, 0), (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)],
@@ -46,7 +46,7 @@ class Tetromino:
     _blocks: npt.NDArray[np.int_]
     _position: npt.NDArray[np.int_]
 
-    def __init__(self, shape: TetrominoShape, position: Position):
+    def __init__(self, shape: TetrominoShape, position: VecXZY):
         self._blocks = np.array(self.SHAPES[shape], dtype=int)
         self._position = np.array(position, dtype=int)
 
@@ -97,7 +97,7 @@ class Tetromino:
                 self._position[2] -= 1
 
     @property
-    def world_blocks(self) -> ty.Iterator[Position]:
+    def world_blocks(self) -> ty.Iterator[VecXZY]:
         for block in self._blocks:
             yield tuple(self._position + block)
 
@@ -106,23 +106,23 @@ class GameModel:
     _frozen: npt.NDArray[np.bool_]
     _current_piece: ty.Optional[Tetromino]
     _score: int
-    _dimensions: tuple[int, int, int]
+    dims: VecXZY
 
     def __init__(self, width: int, depth: int, height: int):
         self._frozen = np.zeros((width, depth, height), dtype=bool)
         self._current_piece = None
         self._score = 0
-        self._dimensions = (width, depth, height)
+        self.dims = (width, depth, height)
 
     def _check_collision(self, piece: Tetromino) -> bool:
         for block in piece.world_blocks:
             if (
                 block[0] < 0
-                or block[0] >= self._dimensions[0]
+                or block[0] >= self.dims[0]
                 or block[1] < 0
-                or block[1] >= self._dimensions[1]
+                or block[1] >= self.dims[1]
                 or block[2] < 0
-                or block[2] >= self._dimensions[2]
+                or block[2] >= self.dims[2]
             ):
                 return True
             if self._frozen[block]:
@@ -130,21 +130,19 @@ class GameModel:
         return False
 
     def _freeze_current_piece(self):
-        assert self._current_piece is not None
-
+        if self._current_piece is None:
+            return
         for block in self._current_piece.world_blocks:
             self._frozen[block] = True
-            pass
+        self._current_piece = None
 
     def _clear_planes(self):
         filled_layers = set(
-            y
-            for y in reversed(range(self._dimensions[2]))
-            if self._frozen[:, :, y].all()
+            y for y in reversed(range(self.dims[2])) if self._frozen[:, :, y].all()
         )
         new_blocks = np.zeros_like(self._frozen)
         new_y = 0
-        for y in range(self._dimensions[2]):
+        for y in range(self.dims[2]):
             if y not in filled_layers:
                 new_blocks[:, :, new_y] = self._frozen[:, :, y]
                 new_y += 1
@@ -152,21 +150,21 @@ class GameModel:
         self._score += len(filled_layers)
 
     def spawn_piece(self, shape: TetrominoShape):
-        assert self._current_piece is None
-
+        if self._current_piece is not None:
+            return
         piece = Tetromino(
             shape,
             (
-                self._dimensions[0] // 2,
-                self._dimensions[1] // 2,
-                self._dimensions[2] - 4,
+                self.dims[0] // 2,
+                self.dims[1] // 2,
+                self.dims[2] - 4,
             ),
         )
         self._current_piece = piece
 
     def move(self, direction: MoveDir):
-        assert self._current_piece is not None
-
+        if self._current_piece is None:
+            return
         piece_clone = deepcopy(self._current_piece)
         piece_clone.move(direction)
         if not self._check_collision(piece_clone):
@@ -176,12 +174,12 @@ class GameModel:
                 self._freeze_current_piece()
 
     def rotate(self, axis: Axis):
-        assert self._current_piece is not None
-
+        if self._current_piece is None:
+            return
         self._current_piece.rotate(axis)
 
     @property
-    def all_blocks(self) -> ty.Iterator[Position]:
+    def all_blocks(self) -> ty.Iterator[VecXZY]:
         if self._current_piece is not None:
             for block in self._current_piece.world_blocks:
                 yield block

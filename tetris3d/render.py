@@ -131,10 +131,7 @@ class MarkerRenderer:
         gl.glPushMatrix()
         gl.glTranslatef(*pos)
 
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, MATERIAL_NULL)
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, MATERIAL_NULL)
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, MATERIAL_NULL)
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, MATERIAL_SHININESS)
+        gl.glDisable(gl.GL_LIGHTING)
 
         self.vertex_vbo.bind()
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
@@ -147,5 +144,7 @@ class MarkerRenderer:
         gl.glDisableClientState(gl.GL_COLOR_ARRAY)
         gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
         self.vertex_vbo.unbind()
+
+        gl.glEnable(gl.GL_LIGHTING)
 
         gl.glPopMatrix()

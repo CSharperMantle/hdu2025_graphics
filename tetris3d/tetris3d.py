@@ -134,6 +134,8 @@ def find_first_intersection(
 def draw_axes():
     gl.glLineWidth(1.0)
 
+    gl.glDisable(gl.GL_LIGHTING)
+
     gl.glColor3f(*COLOR_RED)
     gl.glBegin(gl.GL_LINE_STRIP)
     gl.glVertex3f(*VERTEX_ORIGIN)
@@ -163,6 +165,8 @@ def draw_axes():
     gl.glVertex3f(0.0, game.dims[2], game.dims[1])
     gl.glVertex3f(0.0, game.dims[2], 0.0)
     gl.glEnd()
+
+    gl.glEnable(gl.GL_LIGHTING)
 
     assert marker_renderer is not None
     for x, z, y in it.product(
@@ -387,8 +391,8 @@ def main():
     gl.glBindTexture(gl.GL_TEXTURE_2D, tex_block)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST_MIPMAP_LINEAR)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
     gl.glTexImage2D(
         gl.GL_TEXTURE_2D,
         0,
@@ -401,14 +405,15 @@ def main():
         tex_block_data,
     )
     gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
+    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_LOD_BIAS, -0.4)
 
     block_renderer = BlockRenderer(tex_block)
     marker_renderer = MarkerRenderer()
 
-    gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, LIGHT_POSITION)
-    gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, LIGHT_DIFFUSE)
-    gl.glLightfv(gl.GL_LIGHT0, gl.GL_SPECULAR, LIGHT_SPECULAR)
-    gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, LIGHT_AMBIENT)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, LIGHT0_POSITION)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, LIGHT0_DIFFUSE)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_SPECULAR, LIGHT0_SPECULAR)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, LIGHT0_AMBIENT)
     gl.glLightModelfv(gl.GL_LIGHT_MODEL_LOCAL_VIEWER, LIGHT_MODEL_LOCAL_VIEWER)
 
     gl.glEnable(gl.GL_LIGHTING)

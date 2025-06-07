@@ -21,9 +21,10 @@ Ray = tuple[VecXYZ, VecXYZ]  # (origin, dir)
 window_size = INITIAL_WINDOW_SIZE
 game = GameModel(*GAME_AREA_SIZE)
 
-camera_distance = 30.0
-camera_yaw = 45.0
-camera_pitch = 30.0
+camera_distance = INITIAL_DISTANCE
+camera_yaw = INITIAL_YAW
+camera_pitch = INITIAL_PITCH
+camera_pan = (0.0, 0.0, 0.0)
 mouse_last_pos = (0, 0)
 mouse_lb_down = False
 
@@ -33,6 +34,47 @@ block_renderer: ty.Optional[BlockRenderer] = None
 marker_renderer: ty.Optional[MarkerRenderer] = None
 
 last_tick = 0
+paused = False
+
+
+def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir:
+    yaw_ = round(yaw)
+    if yaw_ >= 315 or yaw_ < 45:
+        if key == b"w":
+            return MoveDir.Z_NEG
+        elif key == b"a":
+            return MoveDir.X_NEG
+        elif key == b"s":
+            return MoveDir.Z_POS
+        elif key == b"d":
+            return MoveDir.X_POS
+    elif 45 <= yaw_ < 135:
+        if key == b"w":
+            return MoveDir.X_NEG
+        elif key == b"a":
+            return MoveDir.Z_POS
+        elif key == b"s":
+            return MoveDir.X_POS
+        elif key == b"d":
+            return MoveDir.Z_NEG
+    elif 135 <= yaw_ < 225:
+        if key == b"w":
+            return MoveDir.Z_POS
+        elif key == b"a":
+            return MoveDir.X_POS
+        elif key == b"s":
+            return MoveDir.Z_NEG
+        elif key == b"d":
+            return MoveDir.X_NEG
+    else:
+        if key == b"w":
+            return MoveDir.X_POS
+        elif key == b"a":
+            return MoveDir.Z_NEG
+        elif key == b"s":
+            return MoveDir.X_NEG
+        elif key == b"d":
+            return MoveDir.Z_POS
 
 
 def ray_intersects_cube(
@@ -136,22 +178,27 @@ def draw_blocks():
 
 def repose_camera():
     gl.glLoadIdentity()
-    eye_x = game_center[0] + camera_distance * math.cos(math.radians(camera_pitch)) * math.sin(
+    base_x = game_center[0] + camera_distance * math.cos(math.radians(camera_pitch)) * math.sin(
         math.radians(camera_yaw)
     )
-    eye_y = game_center[1] + camera_distance * math.sin(math.radians(camera_pitch))
-    eye_z = game_center[2] + camera_distance * math.cos(math.radians(camera_pitch)) * math.cos(
+    base_y = game_center[1] + camera_distance * math.sin(math.radians(camera_pitch))
+    base_z = game_center[2] + camera_distance * math.cos(math.radians(camera_pitch)) * math.cos(
         math.radians(camera_yaw)
     )
-    glu.gluLookAt(
-        eye_x,
-        eye_y,
-        eye_z,
-        *game_center,
-        0.0,
-        1.0,
-        0.0,
-    )
+    eye_x = base_x + camera_pan[0]
+    eye_y = base_y + camera_pan[1]
+    eye_z = base_z + camera_pan[2]
+
+    target_x = game_center[0] + camera_pan[0]
+    target_y = game_center[1] + camera_pan[1]
+    target_z = game_center[2] + camera_pan[2]
+
+    glu.gluLookAt(eye_x, eye_y, eye_z, target_x, target_y, target_z, 0.0, 1.0, 0.0)
+
+
+def quit() -> ty.NoReturn:  # type: ignore
+    logging.info("Goodbye!")
+    glut.glutDestroyWindow(glut.glutGetWindow())
 
 
 def handle_display():
@@ -176,34 +223,84 @@ def handle_reshape(width: int, height: int):
 
 
 def handle_keyboard(key: bytes, x: int, y: int):
+    global paused
+
+    if paused:
+        if key == b"`":
+            paused = False
+            logging.info("Game unpaused.")
+        elif key == b"\x1b":
+            quit()
+        return
+
     need_redraw = False
 
     if key == b"\x1b":
-        glut.glutDestroyWindow(glut.glutGetWindow())
-        return
+        quit()
     elif key == b"q":
         game.rotate(Axis.Y)
         need_redraw = True
     elif key == b"e":
         game.rotate(Axis.Z)
         need_redraw = True
-    elif key == b"a":
-        game.move(MoveDir.X_NEG)
-        need_redraw = True
-    elif key == b"d":
-        game.move(MoveDir.X_POS)
-        need_redraw = True
-    elif key == b"w":
-        game.move(MoveDir.Z_NEG)
-        need_redraw = True
-    elif key == b"s":
-        game.move(MoveDir.Z_POS)
-        need_redraw = True
-    elif key == b"x":
-        game.move(MoveDir.Y_NEG)
+    elif key in (b"w", b"a", b"s", b"d"):
+        game.move(get_move_dir(camera_yaw, key))
         need_redraw = True
     elif key == b" ":
         game.drop()
+        need_redraw = True
+    elif key == b"`":
+        paused = True
+        logging.info("Game paused. Press ` to resume.")
+        need_redraw = True
+
+    if need_redraw:
+        glut.glutPostRedisplay()
+
+
+def handle_special(key: int, x: int, y: int):
+    global camera_pan, paused
+
+    if paused:
+        return
+
+    need_redraw = False
+
+    forward_x = math.sin(math.radians(camera_yaw))
+    forward_z = math.cos(math.radians(camera_yaw))
+    right_x = math.sin(math.radians(camera_yaw + 90))
+    right_z = math.cos(math.radians(camera_yaw + 90))
+
+    if key == glut.GLUT_KEY_DOWN:
+        camera_pan = (
+            camera_pan[0] + forward_x * PAN_SENSITIVITY,
+            camera_pan[1],
+            camera_pan[2] + forward_z * PAN_SENSITIVITY,
+        )
+        need_redraw = True
+    elif key == glut.GLUT_KEY_UP:
+        camera_pan = (
+            camera_pan[0] - forward_x * PAN_SENSITIVITY,
+            camera_pan[1],
+            camera_pan[2] - forward_z * PAN_SENSITIVITY,
+        )
+        need_redraw = True
+    elif key == glut.GLUT_KEY_LEFT:
+        camera_pan = (
+            camera_pan[0] - right_x * PAN_SENSITIVITY,
+            camera_pan[1],
+            camera_pan[2] - right_z * PAN_SENSITIVITY,
+        )
+        need_redraw = True
+    elif key == glut.GLUT_KEY_RIGHT:
+        camera_pan = (
+            camera_pan[0] + right_x * PAN_SENSITIVITY,
+            camera_pan[1],
+            camera_pan[2] + right_z * PAN_SENSITIVITY,
+        )
+        need_redraw = True
+    elif key == glut.GLUT_KEY_HOME:
+        camera_pan = (0.0, 0.0, 0.0)
         need_redraw = True
 
     if need_redraw:
@@ -233,7 +330,7 @@ def handle_motion(x: int, y: int):
     dy = y - mouse_last_pos[1]
 
     if mouse_lb_down:
-        camera_yaw += dx * YAW_SENSITIVITY
+        camera_yaw = (camera_yaw + dx * YAW_SENSITIVITY) % 360.0
         camera_pitch = max(-89.0, min(89.0, camera_pitch + dy * PITCH_SENSITIVITY))
         mouse_last_pos = (x, y)
         glut.glutPostRedisplay()
@@ -251,6 +348,9 @@ def handle_wheel(button: int, dir: int, x: int, y: int):
 
 def handle_idle():
     global last_tick
+
+    if paused:
+        return
     if time.perf_counter_ns() - last_tick > 1_000_000_000:
         game.update()
         last_tick = time.perf_counter_ns()
@@ -316,6 +416,7 @@ def main():
     glut.glutDisplayFunc(handle_display)
     glut.glutReshapeFunc(handle_reshape)
     glut.glutKeyboardFunc(handle_keyboard)
+    glut.glutSpecialFunc(handle_special)
     glut.glutMouseFunc(handle_mouse)
     glut.glutMotionFunc(handle_motion)
     glut.glutMouseWheelFunc(handle_wheel)

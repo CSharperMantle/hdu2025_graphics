@@ -1,6 +1,6 @@
 import typing as ty
 from copy import deepcopy
-from enum import Enum, IntEnum, auto
+from enum import IntEnum, auto
 
 import numpy as np
 import numpy.typing as npt

@@ -1,8 +1,7 @@
 import numpy as np
-from OpenGL.arrays import vbo
 import OpenGL.GL as gl
-
 from const import *
+from OpenGL.arrays import vbo
 
 
 class BlockRenderer:

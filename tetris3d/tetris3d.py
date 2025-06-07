@@ -4,6 +4,7 @@ import random
 import sys
 import typing as ty
 import itertools as it
+import time
 
 from PIL import Image
 import OpenGL.GL as gl
@@ -12,6 +13,7 @@ import OpenGL.GLUT as glut
 
 from model import Axis, GameModel, MoveDir, TetrominoShape
 from const import *
+from render import *
 
 window_size = INITIAL_WINDOW_SIZE
 game = GameModel(*GAME_AREA_SIZE)
@@ -24,7 +26,9 @@ mouse_lb_down = False
 
 game_center = (game.dims[0] / 2.0, game.dims[2] / 2.0, game.dims[1] / 2.0)
 
-texture_block: ty.Optional[ty.Any] = None
+block_renderer: ty.Optional[BlockRenderer] = None
+marker_renderer: ty.Optional[MarkerRenderer] = None
+
 
 def draw_axes():
     gl.glLineWidth(1.0)
@@ -59,116 +63,19 @@ def draw_axes():
     gl.glVertex3f(0.0, game.dims[2], 0.0)
     gl.glEnd()
 
+    assert marker_renderer is not None
     for x, z, y in it.product(
         range(GAME_AREA_SIZE[0]), range(GAME_AREA_SIZE[1]), range(GAME_AREA_SIZE[2])
     ):
-        gl.glPushMatrix()
-        gl.glTranslatef(x, y, z)
-
-        gl.glBegin(gl.GL_LINES)
-
-        gl.glColor3f(*COLOR_RED)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glVertex3f(RENDER_BLOCK_SIZE / 3, 0.0, 0.0)
-
-        gl.glColor3f(*COLOR_GREEN)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glVertex3f(0.0, RENDER_BLOCK_SIZE / 3, 0.0)
-
-        gl.glColor3f(*COLOR_BLUE)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, RENDER_BLOCK_SIZE / 3)
-
-        gl.glEnd()
-
-        gl.glPopMatrix()
+        marker_renderer.render((float(x), float(y), float(z)))
 
     gl.glLineWidth(1.0)
 
 
 def draw_blocks():
-    gl.glEnable(gl.GL_TEXTURE_2D)
-    gl.glBindTexture(gl.GL_TEXTURE_2D, texture_block)
-
     for block in game.all_blocks:
-        gl.glPushMatrix()
-        gl.glTranslatef(float(block[0]), float(block[2]), float(block[1]))
-        gl.glScalef(RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE)
-
-        gl.glColor(*COLOR_WHITE)
-        gl.glBegin(gl.GL_QUADS)
-
-        # Top face (y = 1.0)
-        gl.glNormal3f(0.0, 1.0, 0.0)
-        gl.glTexCoord2f(0.0, 0.0)
-        gl.glVertex3f(0.0, 1.0, 0.0)
-        gl.glTexCoord2f(1.0, 0.0)
-        gl.glVertex3f(1.0, 1.0, 0.0)
-        gl.glTexCoord2f(1.0, 1.0)
-        gl.glVertex3f(1.0, 1.0, 1.0)
-        gl.glTexCoord2f(0.0, 1.0)
-        gl.glVertex3f(0.0, 1.0, 1.0)
-
-        # Bottom face (y = 0.0)
-        gl.glNormal3f(0.0, -1.0, 0.0)
-        gl.glTexCoord2f(0.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 1.0)
-        gl.glTexCoord2f(1.0, 0.0)
-        gl.glVertex3f(1.0, 0.0, 1.0)
-        gl.glTexCoord2f(1.0, 1.0)
-        gl.glVertex3f(1.0, 0.0, 0.0)
-        gl.glTexCoord2f(0.0, 1.0)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-
-        # Left face (x = 0.0)
-        gl.glNormal3f(-1.0, 0.0, 0.0)
-        gl.glTexCoord2f(0.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glTexCoord2f(1.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 1.0)
-        gl.glTexCoord2f(1.0, 1.0)
-        gl.glVertex3f(0.0, 1.0, 1.0)
-        gl.glTexCoord2f(0.0, 1.0)
-        gl.glVertex3f(0.0, 1.0, 0.0)
-
-        # Right face (x = 1.0)
-        gl.glNormal3f(1.0, 0.0, 0.0)
-        gl.glTexCoord2f(0.0, 0.0)
-        gl.glVertex3f(1.0, 0.0, 1.0)
-        gl.glTexCoord2f(1.0, 0.0)
-        gl.glVertex3f(1.0, 0.0, 0.0)
-        gl.glTexCoord2f(1.0, 1.0)
-        gl.glVertex3f(1.0, 1.0, 0.0)
-        gl.glTexCoord2f(0.0, 1.0)
-        gl.glVertex3f(1.0, 1.0, 1.0)
-
-        # Front face (z = 1.0)
-        gl.glNormal3f(0.0, 0.0, 1.0)
-        gl.glTexCoord2f(0.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 1.0)
-        gl.glTexCoord2f(1.0, 0.0)
-        gl.glVertex3f(1.0, 0.0, 1.0)
-        gl.glTexCoord2f(1.0, 1.0)
-        gl.glVertex3f(1.0, 1.0, 1.0)
-        gl.glTexCoord2f(0.0, 1.0)
-        gl.glVertex3f(0.0, 1.0, 1.0)
-
-        # Back face (z = 0.0)
-        gl.glNormal3f(0.0, 0.0, -1.0)
-        gl.glTexCoord2f(0.0, 0.0)
-        gl.glVertex3f(1.0, 0.0, 0.0)
-        gl.glTexCoord2f(1.0, 0.0)
-        gl.glVertex3f(0.0, 0.0, 0.0)
-        gl.glTexCoord2f(1.0, 1.0)
-        gl.glVertex3f(0.0, 1.0, 0.0)
-        gl.glTexCoord2f(0.0, 1.0)
-        gl.glVertex3f(1.0, 1.0, 0.0)
-
-        gl.glEnd()
-
-        gl.glPopMatrix()
-
-    gl.glDisable(gl.GL_TEXTURE_2D)
+        assert block_renderer is not None
+        block_renderer.render((float(block[0]), float(block[2]), float(block[1])), COLOR_WHITE)
 
 
 def repose_camera():
@@ -270,7 +177,7 @@ def handle_idle():
 
 
 def main():
-    global texture_block
+    global block_renderer, marker_renderer
 
     logging.basicConfig(level=logging.DEBUG)
     random.seed(0x0D000721)
@@ -289,27 +196,30 @@ def main():
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
     gl.glLineWidth(1.0)
 
-    with Image.open(PATH_TEXTURE_BLOCK) as img:
-        img_width, img_height = img.size
-        texture_block_data = img.tobytes("raw", "RGB", 0, -1)
-    texture_block = gl.glGenTextures(1)
-    gl.glBindTexture(gl.GL_TEXTURE_2D, texture_block)
+    with Image.open(PATH_TEXTURE_BLOCK) as tex_block_img:
+        tex_block_img_width, tex_block_img_height = tex_block_img.size
+        tex_block_data = tex_block_img.tobytes("raw", "RGB", 0, -1)
+    tex_block = gl.glGenTextures(1)
+    gl.glBindTexture(gl.GL_TEXTURE_2D, tex_block)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST_MIPMAP_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
     gl.glTexImage2D(
         gl.GL_TEXTURE_2D,
         0,
         gl.GL_RGB,
-        img_width,
-        img_height,
+        tex_block_img_width,
+        tex_block_img_height,
         0,
         gl.GL_RGB,
         gl.GL_UNSIGNED_BYTE,
-        texture_block_data,
+        tex_block_data,
     )
     gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
+
+    block_renderer = BlockRenderer(tex_block)
+    marker_renderer = MarkerRenderer()
 
     glut.glutDisplayFunc(handle_display)
     glut.glutReshapeFunc(handle_reshape)

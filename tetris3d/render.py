@@ -159,16 +159,16 @@ class BorderRenderer:
     Vertex = tuple[VertexXYZ, VertexColor]
 
     VERTICES: list[Vertex] = [
-        ((0.0, 0.0, 0.0), COLOR_WHITE),
-        ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_WHITE),
+        ((0.0, 0.0, 0.0), COLOR_RED),
+        ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_RED),
         ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_WHITE),
         ((GAME_AREA_SIZE[0], 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
         ((GAME_AREA_SIZE[0], 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
         ((0.0, 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
-        ((0.0, 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
-        ((0.0, 0.0, 0.0), COLOR_WHITE),
-        ((0.0, 0.0, 0.0), COLOR_WHITE),
-        ((0.0, GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+        ((0.0, 0.0, GAME_AREA_SIZE[1]), COLOR_BLUE),
+        ((0.0, 0.0, 0.0), COLOR_BLUE),
+        ((0.0, 0.0, 0.0), COLOR_GREEN),
+        ((0.0, GAME_AREA_SIZE[2], 0.0), COLOR_GREEN),
         ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_WHITE),
         ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
         ((GAME_AREA_SIZE[0], 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),

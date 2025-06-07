@@ -39,6 +39,7 @@ border_renderer: ty.Optional[BorderRenderer] = None
 
 last_tick = 0
 paused = False
+show_marker = False
 
 
 def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir:
@@ -132,23 +133,6 @@ def find_first_intersection(
     return closest_block
 
 
-def draw_axes():
-    assert border_renderer is not None
-    border_renderer.render()
-
-    assert marker_renderer is not None
-    for x, z, y in it.product(
-        range(GAME_AREA_SIZE[0]), range(GAME_AREA_SIZE[1]), range(GAME_AREA_SIZE[2])
-    ):
-        marker_renderer.render((float(x), float(y), float(z)))
-
-
-def draw_blocks():
-    for block, type in game.all_blocks:
-        assert block_renderer is not None
-        block_renderer.render((float(block[0]), float(block[2]), float(block[1])), type)
-
-
 def repose_camera():
     gl.glLoadIdentity()
     base_x = game_center[0] + camera_distance * math.cos(math.radians(camera_pitch)) * math.sin(
@@ -178,8 +162,21 @@ def handle_display():
     gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
     gl.glMatrixMode(gl.GL_MODELVIEW)
     repose_camera()
-    draw_axes()
-    draw_blocks()
+
+    assert border_renderer is not None
+    border_renderer.render()
+
+    if show_marker:
+        assert marker_renderer is not None
+        for x, z, y in it.product(
+            range(GAME_AREA_SIZE[0]), range(GAME_AREA_SIZE[1]), range(GAME_AREA_SIZE[2])
+        ):
+            marker_renderer.render((float(x), float(y), float(z)))
+
+    assert block_renderer is not None
+    for block, type in game.all_blocks:
+        block_renderer.render((float(block[0]), float(block[2]), float(block[1])), type)
+
     glut.glutSwapBuffers()
 
 
@@ -196,7 +193,7 @@ def handle_reshape(width: int, height: int):
 
 
 def handle_keyboard(key: bytes, x: int, y: int):
-    global paused
+    global paused, show_marker
 
     if paused:
         if key == b"`":
@@ -221,6 +218,9 @@ def handle_keyboard(key: bytes, x: int, y: int):
         need_redraw = True
     elif key == b" ":
         game.drop()
+        need_redraw = True
+    elif key == b"m":
+        show_marker = not show_marker
         need_redraw = True
     elif key == b"`":
         paused = True

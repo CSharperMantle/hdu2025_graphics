@@ -1,6 +1,7 @@
 import numpy as np
 import OpenGL.GL as gl
 from const import *
+from model import TetrominoShape
 from OpenGL.arrays import vbo
 
 
@@ -43,6 +44,16 @@ class BlockRenderer:
         ((0.0, 0.0, 0.0), (0.0, 0.0), (-1.0, 0.0, 0.0)),
     ]
 
+    COLORS: dict[TetrominoShape, tuple[float, float, float]] = {
+        TetrominoShape.I: COLOR_CYAN,
+        TetrominoShape.O: COLOR_YELLOW,
+        TetrominoShape.T: COLOR_PURPLE,
+        TetrominoShape.L: COLOR_ORANGE,
+        TetrominoShape.J: COLOR_BLUE,
+        TetrominoShape.S: COLOR_GREEN,
+        TetrominoShape.Z: COLOR_RED,
+    }
+
     texture_id: int
     vertex_vbo: vbo.VBO
 
@@ -59,10 +70,11 @@ class BlockRenderer:
         self.vertex_vbo = vbo.VBO(vertices_data)
         self.texture_id = texture_id
 
-    def render(self, pos: tuple[float, float, float], color: tuple[float, float, float]):
+    def render(self, pos: tuple[float, float, float], type: TetrominoShape):
         gl.glPushMatrix()
         gl.glTranslatef(*pos)
 
+        color = self.COLORS.get(type, COLOR_WHITE)
         gl.glColor3f(*color)
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, MATERIAL_AMBIENT)
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, MATERIAL_DIFFUSE)

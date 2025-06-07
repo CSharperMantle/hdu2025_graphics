@@ -19,7 +19,10 @@ VecXYZ = tuple[float, float, float]  # (x, y, z)
 Ray = tuple[VecXYZ, VecXYZ]  # (origin, dir)
 
 window_size = INITIAL_WINDOW_SIZE
-game = GameModel(*GAME_AREA_SIZE)
+game = GameModel(
+    *GAME_AREA_SIZE,
+    lambda _: random.choice(list(TetrominoShape)),
+)
 
 camera_distance = INITIAL_DISTANCE
 camera_yaw = INITIAL_YAW
@@ -116,7 +119,7 @@ def find_first_intersection(
 ) -> ty.Optional[VecXYZ]:
     closest_dist = float("inf")
     closest_block = None
-    for block in game.all_blocks:
+    for block, _ in game.all_blocks:
         pos = (float(block[0]), float(block[2]), float(block[1]))
         size = (RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE)
         if ray_intersects_cube(ray, pos, size):
@@ -171,9 +174,9 @@ def draw_axes():
 
 
 def draw_blocks():
-    for block in game.all_blocks:
+    for block, type in game.all_blocks:
         assert block_renderer is not None
-        block_renderer.render((float(block[0]), float(block[2]), float(block[1])), COLOR_WHITE)
+        block_renderer.render((float(block[0]), float(block[2]), float(block[1])), type)
 
 
 def repose_camera():
@@ -424,7 +427,7 @@ def main():
 
     handle_reshape(window_size[0], window_size[1])
 
-    game.spawn_piece(TetrominoShape.I)
+    game.spawn_piece(random.choice(list(TetrominoShape)))
 
     glut.glutMainLoop()
 

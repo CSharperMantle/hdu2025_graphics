@@ -97,10 +97,21 @@ class Tetromino:
 
     _blocks: npt.NDArray[np.int_]
     _position: npt.NDArray[np.int_]
+    _shape: TetrominoShape
+
+    @property
+    def world_blocks(self) -> ty.Iterator[tuple[VecXZY, TetrominoShape]]:
+        for block in self._blocks:
+            yield (tuple(self._position + block), self._shape)
+
+    @property
+    def shape(self) -> TetrominoShape:
+        return self._shape
 
     def __init__(self, shape: TetrominoShape, position: VecXZY):
         self._blocks = np.array(self.SHAPES[shape], dtype=int)
         self._position = np.array(position, dtype=int)
+        self._shape = shape
 
     def rotate(self, axis: Axis):
         if len(self._blocks) > 0:
@@ -126,14 +137,10 @@ class Tetromino:
             case MoveDir.Y_NEG:
                 self._position[2] -= 1
 
-    @property
-    def world_blocks(self) -> ty.Iterator[VecXZY]:
-        for block in self._blocks:
-            yield tuple(self._position + block)
-
 
 class GameModel:
     _frozen: npt.NDArray[np.bool_]
+    _frozen_types: npt.NDArray[np.uint8]
     _current_piece: ty.Optional[Tetromino]
     _score: int
     _dims: VecXZY
@@ -150,14 +157,17 @@ class GameModel:
         return self._dims
 
     @property
-    def all_blocks(self) -> ty.Iterator[VecXZY]:
+    def all_blocks(self) -> ty.Iterator[tuple[VecXZY, TetrominoShape]]:
         if self._current_piece is not None:
             for block in self._current_piece.world_blocks:
                 yield block
         with np.nditer(self._frozen, flags=["multi_index"]) as it:
             for block in it:
                 if block:
-                    yield (it.multi_index[0], it.multi_index[1], it.multi_index[2])
+                    yield (
+                        (it.multi_index[0], it.multi_index[1], it.multi_index[2]),
+                        self._frozen_types[it.multi_index],
+                    )
 
     def __init__(
         self,
@@ -169,6 +179,7 @@ class GameModel:
         on_failure: ty.Callable[[ty.Self], None] = lambda _: None,
     ):
         self._frozen = np.zeros((width, depth, height), dtype=bool)
+        self._frozen_types = np.zeros((width, depth, height), dtype=np.uint8)
         self._current_piece = None
         self._score = 0
         self._on_frozen = on_frozen
@@ -177,7 +188,7 @@ class GameModel:
         self._dims = (width, depth, height)
 
     def _check_collision(self, piece: Tetromino) -> bool:
-        for block in piece.world_blocks:
+        for block, _ in piece.world_blocks:
             if (
                 block[0] < 0
                 or block[0] >= self._dims[0]
@@ -196,20 +207,24 @@ class GameModel:
             y for y in reversed(range(self._dims[2])) if self._frozen[:, :, y].all()
         )
         new_blocks = np.zeros_like(self._frozen)
+        new_types = np.zeros_like(self._frozen_types)
         new_y = 0
         for y in range(self._dims[2]):
             if y not in filled_layers:
                 new_blocks[:, :, new_y] = self._frozen[:, :, y]
+                new_types[:, :, new_y] = self._frozen_types[:, :, y]
                 new_y += 1
         self._frozen = new_blocks
+        self._frozen_types = new_types
         self._score += len(filled_layers)
         self._on_score(self)
 
     def _freeze_current_piece(self):
         if self._current_piece is None:
             return
-        for block in self._current_piece.world_blocks:
+        for block, type in self._current_piece.world_blocks:
             self._frozen[block] = True
+            self._frozen_types[block] = type
         self._current_piece = None
         self.spawn_piece(self._on_frozen(self))
         self._clear_planes()
@@ -223,7 +238,7 @@ class GameModel:
             (
                 (self._dims[0] - dims[0]) // 2,
                 (self._dims[1] - dims[1]) // 2,
-                self._dims[2] - 1,
+                self._dims[2] - dims[2] - 1,
             ),
         )
         if self._check_collision(piece):

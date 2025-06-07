@@ -54,8 +54,8 @@ class BlockRenderer:
         TetrominoShape.Z: COLOR_RED,
     }
 
-    texture_id: int
-    vertex_vbo: vbo.VBO
+    _texture_id: int
+    _vertex_vbo: vbo.VBO
 
     def __init__(self, texture_id: int):
         vertices_data = np.array(
@@ -67,8 +67,8 @@ class BlockRenderer:
             dtype=np.float32,
         )
 
-        self.vertex_vbo = vbo.VBO(vertices_data)
-        self.texture_id = texture_id
+        self._vertex_vbo = vbo.VBO(vertices_data)
+        self._texture_id = texture_id
 
     def render(self, pos: tuple[float, float, float], type: TetrominoShape):
         gl.glPushMatrix()
@@ -82,21 +82,21 @@ class BlockRenderer:
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, MATERIAL_SHININESS)
 
         gl.glEnable(gl.GL_TEXTURE_2D)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
-        self.vertex_vbo.bind()
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
+        self._vertex_vbo.bind()
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
         gl.glEnableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glEnableClientState(gl.GL_NORMAL_ARRAY)
 
-        gl.glVertexPointer(3, gl.GL_FLOAT, 32, self.vertex_vbo)
-        gl.glTexCoordPointer(2, gl.GL_FLOAT, 32, self.vertex_vbo + 12)
-        gl.glNormalPointer(gl.GL_FLOAT, 32, self.vertex_vbo + 20)
-        gl.glDrawArrays(gl.GL_QUADS, 0, 24)
+        gl.glVertexPointer(3, gl.GL_FLOAT, 32, self._vertex_vbo)
+        gl.glTexCoordPointer(2, gl.GL_FLOAT, 32, self._vertex_vbo + 12)
+        gl.glNormalPointer(gl.GL_FLOAT, 32, self._vertex_vbo + 20)
+        gl.glDrawArrays(gl.GL_QUADS, 0, len(self.VERTICES))
 
         gl.glDisableClientState(gl.GL_NORMAL_ARRAY)
         gl.glDisableClientState(gl.GL_TEXTURE_COORD_ARRAY)
         gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
-        self.vertex_vbo.unbind()
+        self._vertex_vbo.unbind()
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
         gl.glDisable(gl.GL_TEXTURE_2D)
 
@@ -117,10 +117,10 @@ class MarkerRenderer:
         ((0.0, 0.0, RENDER_BLOCK_SIZE / 3), COLOR_BLUE),
     ]
 
-    vertex_vbo: vbo.VBO
+    _vertex_vbo: vbo.VBO
 
     def __init__(self):
-        self.vertex_vbo = vbo.VBO(
+        self._vertex_vbo = vbo.VBO(
             np.array(
                 [v for vertex in self.VERTICES for v in (list(vertex[0]) + list(vertex[1]))],
                 dtype=np.float32,
@@ -131,20 +131,89 @@ class MarkerRenderer:
         gl.glPushMatrix()
         gl.glTranslatef(*pos)
 
+        gl.glLineWidth(1.0)
         gl.glDisable(gl.GL_LIGHTING)
 
-        self.vertex_vbo.bind()
+        self._vertex_vbo.bind()
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
         gl.glEnableClientState(gl.GL_COLOR_ARRAY)
 
-        gl.glVertexPointer(3, gl.GL_FLOAT, 24, self.vertex_vbo)
-        gl.glColorPointer(3, gl.GL_FLOAT, 24, self.vertex_vbo + 12)
-        gl.glDrawArrays(gl.GL_LINES, 0, 6)
+        gl.glVertexPointer(3, gl.GL_FLOAT, 24, self._vertex_vbo)
+        gl.glColorPointer(3, gl.GL_FLOAT, 24, self._vertex_vbo + 12)
+        gl.glDrawArrays(gl.GL_LINES, 0, len(self.VERTICES))
 
         gl.glDisableClientState(gl.GL_COLOR_ARRAY)
         gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
-        self.vertex_vbo.unbind()
+        self._vertex_vbo.unbind()
 
         gl.glEnable(gl.GL_LIGHTING)
+        gl.glLineWidth(1.0)
+
+        gl.glPopMatrix()
+
+
+class BorderRenderer:
+
+    VertexXYZ = tuple[float, float, float]
+    VertexColor = tuple[float, float, float]
+    Vertex = tuple[VertexXYZ, VertexColor]
+
+    VERTICES: list[Vertex] = [
+        ((0.0, 0.0, 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, 0.0, 0.0), COLOR_WHITE),
+        ((0.0, 0.0, 0.0), COLOR_WHITE),
+        ((0.0, GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], 0.0, 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, 0.0, GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, GAME_AREA_SIZE[2], GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((GAME_AREA_SIZE[0], GAME_AREA_SIZE[2], GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, GAME_AREA_SIZE[2], GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, GAME_AREA_SIZE[2], GAME_AREA_SIZE[1]), COLOR_WHITE),
+        ((0.0, GAME_AREA_SIZE[2], 0.0), COLOR_WHITE),
+    ]
+
+    _vertex_vbo: vbo.VBO
+
+    def __init__(self):
+        self._vertex_vbo = vbo.VBO(
+            np.array(
+                [v for vertex in self.VERTICES for v in (list(vertex[0]) + list(vertex[1]))],
+                dtype=np.float32,
+            )
+        )
+
+    def render(self):
+        gl.glPushMatrix()
+
+        gl.glLineWidth(2.0)
+        gl.glDisable(gl.GL_LIGHTING)
+
+        self._vertex_vbo.bind()
+        gl.glEnableClientState(gl.GL_VERTEX_ARRAY)
+        gl.glEnableClientState(gl.GL_COLOR_ARRAY)
+
+        gl.glVertexPointer(3, gl.GL_FLOAT, 24, self._vertex_vbo)
+        gl.glColorPointer(3, gl.GL_FLOAT, 24, self._vertex_vbo + 12)
+        gl.glDrawArrays(gl.GL_LINES, 0, len(self.VERTICES))
+
+        gl.glDisableClientState(gl.GL_COLOR_ARRAY)
+        gl.glDisableClientState(gl.GL_VERTEX_ARRAY)
+        self._vertex_vbo.unbind()
+
+        gl.glEnable(gl.GL_LIGHTING)
+        gl.glLineWidth(1.0)
 
         gl.glPopMatrix()

@@ -35,6 +35,7 @@ game_center = (game.dims[0] / 2.0, game.dims[2] / 2.0, game.dims[1] / 2.0)
 
 block_renderer: ty.Optional[BlockRenderer] = None
 marker_renderer: ty.Optional[MarkerRenderer] = None
+border_renderer: ty.Optional[BorderRenderer] = None
 
 last_tick = 0
 paused = False
@@ -103,7 +104,7 @@ def ray_intersects_cube(
     return (t_min <= t_max) and (t_max >= 0)
 
 
-def get_ray_from_screen(x: int, y: int) -> Ray:
+def cast_ray_from_screen_point(x: int, y: int) -> Ray:
     viewport = gl.glGetIntegerv(gl.GL_VIEWPORT)
     y = viewport[3] - y
     near_point = glu.gluUnProject(x, y, 0.0)
@@ -132,49 +133,14 @@ def find_first_intersection(
 
 
 def draw_axes():
-    gl.glLineWidth(1.0)
-
-    gl.glDisable(gl.GL_LIGHTING)
-
-    gl.glColor3f(*COLOR_RED)
-    gl.glBegin(gl.GL_LINE_STRIP)
-    gl.glVertex3f(*VERTEX_ORIGIN)
-    gl.glVertex3f(game.dims[0], 0.0, 0.0)
-    gl.glVertex3f(game.dims[0], 0.0, game.dims[1])
-    gl.glVertex3f(0.0, 0.0, game.dims[1])
-    gl.glVertex3f(*VERTEX_ORIGIN)
-    gl.glEnd()
-
-    gl.glColor3f(*COLOR_GREEN)
-    gl.glBegin(gl.GL_LINES)
-    gl.glVertex3f(*VERTEX_ORIGIN)
-    gl.glVertex3f(0.0, game.dims[2], 0.0)
-    gl.glVertex3f(game.dims[0], 0.0, 0.0)
-    gl.glVertex3f(game.dims[0], game.dims[2], 0.0)
-    gl.glVertex3f(game.dims[0], 0.0, game.dims[1])
-    gl.glVertex3f(game.dims[0], game.dims[2], game.dims[1])
-    gl.glVertex3f(0.0, 0.0, game.dims[1])
-    gl.glVertex3f(0.0, game.dims[2], game.dims[1])
-    gl.glEnd()
-
-    gl.glColor3f(*COLOR_BLUE)
-    gl.glBegin(gl.GL_LINE_STRIP)
-    gl.glVertex3f(0.0, game.dims[2], 0.0)
-    gl.glVertex3f(game.dims[0], game.dims[2], 0.0)
-    gl.glVertex3f(game.dims[0], game.dims[2], game.dims[1])
-    gl.glVertex3f(0.0, game.dims[2], game.dims[1])
-    gl.glVertex3f(0.0, game.dims[2], 0.0)
-    gl.glEnd()
-
-    gl.glEnable(gl.GL_LIGHTING)
+    assert border_renderer is not None
+    border_renderer.render()
 
     assert marker_renderer is not None
     for x, z, y in it.product(
         range(GAME_AREA_SIZE[0]), range(GAME_AREA_SIZE[1]), range(GAME_AREA_SIZE[2])
     ):
         marker_renderer.render((float(x), float(y), float(z)))
-
-    gl.glLineWidth(1.0)
 
 
 def draw_blocks():
@@ -321,10 +287,10 @@ def handle_mouse(button: int, state: int, x: int, y: int):
         if state == glut.GLUT_DOWN:
             mouse_lb_down = True
             mouse_last_pos = (x, y)
-            ray_origin, ray_dir = get_ray_from_screen(x, y)
+            ray_origin, ray_dir = cast_ray_from_screen_point(x, y)
             block = find_first_intersection((ray_origin, ray_dir))
             if block is not None:
-                logging.debug(f"Block selected: {block}")
+                logging.debug(f"Block selected: {block}")  # TODO: handle selection
         elif state == glut.GLUT_UP:
             mouse_lb_down = False
     glut.glutPostRedisplay()
@@ -365,7 +331,7 @@ def handle_idle():
 
 
 def main():
-    global block_renderer, marker_renderer
+    global block_renderer, marker_renderer, border_renderer
 
     logging.basicConfig(level=logging.DEBUG)
     random.seed(0x0D000721)
@@ -409,6 +375,7 @@ def main():
 
     block_renderer = BlockRenderer(tex_block)
     marker_renderer = MarkerRenderer()
+    border_renderer = BorderRenderer()
 
     gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, LIGHT0_POSITION)
     gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, LIGHT0_DIFFUSE)

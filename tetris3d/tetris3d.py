@@ -319,15 +319,15 @@ def handle_wheel(button: int, dir: int, x: int, y: int):
     glut.glutPostRedisplay()
 
 
-def handle_idle():
+def handle_timer(arg: ty.Never):
     global last_tick
 
-    if paused:
-        return
-    if time.perf_counter_ns() - last_tick > 1_000_000_000:
+    if not paused and time.perf_counter_ns() - last_tick > 1_000_000_000:
         game.update()
         last_tick = time.perf_counter_ns()
         glut.glutPostRedisplay()
+
+    glut.glutTimerFunc(REFRESH_PERIOD, handle_timer, None)
 
 
 def main():
@@ -395,7 +395,7 @@ def main():
     glut.glutMouseFunc(handle_mouse)
     glut.glutMotionFunc(handle_motion)
     glut.glutMouseWheelFunc(handle_wheel)
-    glut.glutIdleFunc(handle_idle)
+    glut.glutTimerFunc(REFRESH_PERIOD, handle_timer, None)
 
     handle_reshape(window_size[0], window_size[1])
 

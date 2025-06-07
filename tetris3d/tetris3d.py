@@ -32,6 +32,8 @@ game_center = (game.dims[0] / 2.0, game.dims[2] / 2.0, game.dims[1] / 2.0)
 block_renderer: ty.Optional[BlockRenderer] = None
 marker_renderer: ty.Optional[MarkerRenderer] = None
 
+last_tick = 0
+
 
 def ray_intersects_cube(
     ray: Ray,
@@ -179,11 +181,29 @@ def handle_keyboard(key: bytes, x: int, y: int):
     if key == b"\x1b":
         glut.glutDestroyWindow(glut.glutGetWindow())
         return
+    elif key == b"q":
+        game.rotate(Axis.Y)
+        need_redraw = True
+    elif key == b"e":
+        game.rotate(Axis.Z)
+        need_redraw = True
+    elif key == b"a":
+        game.move(MoveDir.X_NEG)
+        need_redraw = True
+    elif key == b"d":
+        game.move(MoveDir.X_POS)
+        need_redraw = True
+    elif key == b"w":
+        game.move(MoveDir.Z_NEG)
+        need_redraw = True
     elif key == b"s":
+        game.move(MoveDir.Z_POS)
+        need_redraw = True
+    elif key == b"x":
         game.move(MoveDir.Y_NEG)
         need_redraw = True
     elif key == b" ":
-        game.rotate(Axis.Y)
+        game.drop()
         need_redraw = True
 
     if need_redraw:
@@ -230,8 +250,11 @@ def handle_wheel(button: int, dir: int, x: int, y: int):
 
 
 def handle_idle():
-    # glut.glutPostRedisplay()
-    pass
+    global last_tick
+    if time.perf_counter_ns() - last_tick > 1_000_000_000:
+        game.update()
+        last_tick = time.perf_counter_ns()
+        glut.glutPostRedisplay()
 
 
 def main():
@@ -278,6 +301,17 @@ def main():
 
     block_renderer = BlockRenderer(tex_block)
     marker_renderer = MarkerRenderer()
+
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, LIGHT_POSITION)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, LIGHT_DIFFUSE)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_SPECULAR, LIGHT_SPECULAR)
+    gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, LIGHT_AMBIENT)
+    gl.glLightModelfv(gl.GL_LIGHT_MODEL_LOCAL_VIEWER, LIGHT_MODEL_LOCAL_VIEWER)
+
+    gl.glEnable(gl.GL_LIGHTING)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_COLOR_MATERIAL)
+    gl.glEnable(gl.GL_LIGHT0)
 
     glut.glutDisplayFunc(handle_display)
     glut.glutReshapeFunc(handle_reshape)

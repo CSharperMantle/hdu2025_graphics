@@ -64,6 +64,10 @@ class BlockRenderer:
         gl.glTranslatef(*pos)
 
         gl.glColor3f(*color)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, MATERIAL_AMBIENT)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, MATERIAL_DIFFUSE)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, MATERIAL_SPECULAR)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, MATERIAL_SHININESS)
 
         gl.glEnable(gl.GL_TEXTURE_2D)
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
@@ -114,6 +118,11 @@ class MarkerRenderer:
     def render(self, pos: tuple[float, float, float]):
         gl.glPushMatrix()
         gl.glTranslatef(*pos)
+
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, MATERIAL_NULL)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, MATERIAL_NULL)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, MATERIAL_NULL)
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, MATERIAL_SHININESS)
 
         self.vertex_vbo.bind()
         gl.glEnableClientState(gl.GL_VERTEX_ARRAY)

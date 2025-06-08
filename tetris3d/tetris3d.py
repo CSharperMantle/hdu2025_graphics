@@ -23,8 +23,16 @@ def gen_rand_piece(_: object):
     return shape, rotations
 
 
+def print_score(game: GameModel):
+    logging.info(f"Score: {game.score}")
+
+
+def print_game_over(game: GameModel):
+    logging.info(f"Game over. Final score: {game.score}. Press ESC to exit.")
+
+
 window_size = INITIAL_WINDOW_SIZE
-game = GameModel(*GAME_AREA_SIZE, gen_rand_piece)
+game = GameModel(*GAME_AREA_SIZE, gen_rand_piece, print_score, print_game_over)
 
 camera_distance = INITIAL_DISTANCE
 camera_yaw = INITIAL_YAW

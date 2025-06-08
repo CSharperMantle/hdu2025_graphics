@@ -216,6 +216,9 @@ class GameModel:
         filled_layers = set(
             y for y in reversed(range(self._dims[2])) if self._frozen[:, :, y].all()
         )
+        score = len(filled_layers)
+        if score == 0:
+            return
         new_blocks = np.zeros_like(self._frozen)
         new_types = np.zeros_like(self._frozen_types)
         new_y = 0
@@ -226,7 +229,7 @@ class GameModel:
                 new_y += 1
         self._frozen = new_blocks
         self._frozen_types = new_types
-        self._score += len(filled_layers)
+        self._score += score
         self._on_score(self)
 
     def _freeze_current_piece(self):

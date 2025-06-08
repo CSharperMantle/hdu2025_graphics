@@ -12,9 +12,7 @@ class TetrominoShape(IntEnum):
     O = auto()
     T = auto()
     L = auto()
-    J = auto()
     S = auto()
-    Z = auto()
 
 
 class Axis(IntEnum):
@@ -44,11 +42,9 @@ class Tetromino:
     SHAPES: dict[TetrominoShape, list[VecXZYi]] = {
         TetrominoShape.I: [(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)],
         TetrominoShape.O: [(0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0)],
-        TetrominoShape.T: [(0, 0, 0), (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)],
-        TetrominoShape.L: [(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)],
-        TetrominoShape.J: [(0, 0, 0), (-1, 0, 0), (0, 1, 0), (0, 0, 1)],
+        TetrominoShape.T: [(0, 0, 0), (1, 0, 0), (-1, 0, 0), (0, 1, 0)],
+        TetrominoShape.L: [(0, 0, 0), (1, 0, 0), (2, 0, 0), (0, 0, 1)],
         TetrominoShape.S: [(0, 0, 0), (-1, 0, 0), (0, 1, 0), (1, 1, 0)],
-        TetrominoShape.Z: [(0, 0, 0), (1, 0, 0), (0, 1, 0), (-1, 1, 0)],
     }
 
     DIMS: dict[TetrominoShape, VecXZYi] = {
@@ -101,7 +97,8 @@ class Tetromino:
     @property
     def world_blocks(self) -> ty.Iterator[tuple[VecXZYi, TetrominoShape]]:
         for block in self._blocks:
-            yield (tuple(self._position + block), self._shape)
+            pos = self._position + block
+            yield ((int(pos[0]), int(pos[1]), int(pos[2])), self._shape)
 
     @property
     def shape(self) -> TetrominoShape:

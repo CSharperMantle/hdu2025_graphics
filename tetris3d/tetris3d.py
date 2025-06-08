@@ -476,7 +476,7 @@ def handle_timer(arg: object):
 def main():
     global block_renderer, marker_renderer, border_renderer, locator_renderer
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     random.seed(0x0D000721)
 
     glut.glutInit(sys.argv)

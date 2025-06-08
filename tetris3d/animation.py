@@ -1,6 +1,5 @@
 import typing as ty
 
-
 EasingFunc = ty.Callable[[int, int], float]
 AnimationActor = ty.Callable[[float], bool]
 

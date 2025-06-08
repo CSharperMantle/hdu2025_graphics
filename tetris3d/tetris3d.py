@@ -226,7 +226,7 @@ def handle_reshape(width: int, height: int):
 
 
 def handle_keyboard(key: bytes, x: int, y: int):
-    global paused, show_marker, selected, select_along
+    global paused, show_marker, selected, select_along, show_locator
 
     need_redraw = False
 
@@ -247,6 +247,12 @@ def handle_keyboard(key: bytes, x: int, y: int):
             select_along = Axis.Z
             logging.info(f"Selecting along {select_along.name} axis.")
             need_redraw = True
+        elif key == b"m":
+            show_marker = not show_marker
+            need_redraw = True
+        elif key == b"z":
+            show_locator = not show_locator
+            need_redraw = True
         elif key == b"\x1b":
             quit()
     else:
@@ -264,6 +270,9 @@ def handle_keyboard(key: bytes, x: int, y: int):
             need_redraw = True
         elif key == b"m":
             show_marker = not show_marker
+            need_redraw = True
+        elif key == b"z":
+            show_locator = not show_locator
             need_redraw = True
         elif key == b"`":
             paused = True

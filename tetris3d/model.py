@@ -244,7 +244,6 @@ class GameModel:
         for axis in rotation_plan:
             if not self.rotate(axis):
                 break
-        self._clear_planes()
 
     def spawn_piece(self, shape: TetrominoShape):
         if self._current_piece is not None:
@@ -292,6 +291,7 @@ class GameModel:
         return False
 
     def update(self):
+        self._clear_planes()
         if self._current_piece is None:
             return
         self.move(MoveDir.Y_NEG)

@@ -58,7 +58,7 @@ show_marker = False
 show_locator = True
 last_selected: ty.Optional[tuple[VecXYZi, Axis]] = None
 current_selected: ty.Optional[tuple[VecXYZi, Axis]] = None
-select_along: Axis = Axis.Y
+select_along: Axis = Axis.Z
 selected_progress = 0.0
 
 

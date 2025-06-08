@@ -99,11 +99,7 @@ def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir
             return MoveDir.Z_POS
 
 
-def ray_intersects_cube(
-    ray: Ray,
-    origin: VecXYZf,
-    size: VecXYZf,
-) -> bool:
+def ray_intersects_cube(ray: Ray, origin: VecXYZf, size: VecXYZf) -> bool:
     start = np.array(ray[0], dtype=np.float32)
     dir = np.array(ray[1], dtype=np.float32)
     origin_ = np.array(origin, dtype=np.float32)
@@ -133,9 +129,7 @@ def cast_ray_from_screen_point(x: int, y: int) -> Ray:
     return tuple(ray_origin), tuple(ray_direction)
 
 
-def find_first_intersection(
-    ray: Ray,
-) -> ty.Optional[VecXYZi]:
+def find_first_intersection(ray: Ray) -> ty.Optional[VecXYZi]:
     closest_dist = float("inf")
     closest_block = None
     for block, _ in game.all_blocks:

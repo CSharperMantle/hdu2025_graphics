@@ -168,6 +168,14 @@ class GameModel:
                         self._frozen_types[it.multi_index],
                     )
 
+    @property
+    def active_blocks(self) -> ty.Iterator[tuple[VecXZYi, TetrominoShape]]:
+        if self._current_piece is not None:
+            for block in self._current_piece.world_blocks:
+                yield block
+        else:
+            return
+
     def __init__(
         self,
         width: int,
@@ -290,3 +298,13 @@ class GameModel:
             return
         while self.move(MoveDir.Y_NEG):
             pass
+
+    def get_height_below_for(self, pos: VecXZYi) -> int:
+        if not (0 <= pos[0] < self._dims[0] and 0 <= pos[1] < self._dims[1]):
+            return 0
+        height = 0
+        for y in range(pos[2], -1, -1):
+            if self._frozen[pos[0], pos[1], y]:
+                break
+            height += 1
+        return height

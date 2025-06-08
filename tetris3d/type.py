@@ -1,5 +1,6 @@
 VecXYZf = tuple[float, float, float]
 VecXYZi = tuple[int, int, int]
+VecXZi = tuple[int, int]
 VecXZYi = tuple[int, int, int]
 VecUVf = tuple[float, float]
 ColorRGBf = tuple[float, float, float]

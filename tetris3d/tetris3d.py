@@ -38,10 +38,12 @@ game_center = (game.dims[0] / 2.0, game.dims[2] / 2.0, game.dims[1] / 2.0)
 block_renderer: ty.Optional[BlockRenderer] = None
 marker_renderer: ty.Optional[MarkerRenderer] = None
 border_renderer: ty.Optional[BorderRenderer] = None
+locator_renderer: ty.Optional[LocatorRenderer] = None
 
 last_tick = 0
 paused = False
 show_marker = False
+show_locator = True
 selected: ty.Optional[VecXYZi] = None
 select_along: Axis = Axis.Y
 
@@ -198,7 +200,13 @@ def handle_display():
         gl.glDepthMask(gl.GL_FALSE)
         for block, type in filter(lambda x: not is_selected(x[0]), game.all_blocks):
             block_renderer.render(BlockView(block, type, RENDER_UNSELECTED_ALPHA))
-        gl.glDepthMask(gl.GL_TRUE)  # Re-enable depth writes
+        gl.glDepthMask(gl.GL_TRUE)
+
+    if show_locator:
+        assert locator_renderer is not None
+        for block, _ in game.active_blocks:
+            height_below = game.get_height_below_for(block)
+            locator_renderer.render((block[0], block[2] - height_below + 1, block[1]), height_below)
 
     glut.glutSwapBuffers()
 
@@ -374,7 +382,7 @@ def handle_timer(arg: object):
 
 
 def main():
-    global block_renderer, marker_renderer, border_renderer
+    global block_renderer, marker_renderer, border_renderer, locator_renderer
 
     logging.basicConfig(level=logging.DEBUG)
     random.seed(0x0D000721)
@@ -419,6 +427,7 @@ def main():
     block_renderer = BlockRenderer(tex_block)
     marker_renderer = MarkerRenderer()
     border_renderer = BorderRenderer()
+    locator_renderer = LocatorRenderer()
 
     gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, LIGHT0_POSITION)
     gl.glLightfv(gl.GL_LIGHT0, gl.GL_DIFFUSE, LIGHT0_DIFFUSE)

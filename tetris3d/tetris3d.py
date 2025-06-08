@@ -56,8 +56,8 @@ last_animation_tick_ns = 0
 paused = False
 show_marker = False
 show_locator = True
-last_selected: ty.Optional[VecXYZi] = None
-current_selected: ty.Optional[VecXYZi] = None
+last_selected: ty.Optional[tuple[VecXYZi, Axis]] = None
+current_selected: ty.Optional[tuple[VecXYZi, Axis]] = None
 select_along: Axis = Axis.Y
 selected_progress = 0.0
 
@@ -70,10 +70,10 @@ def selection_animator(progress: float) -> bool:
     return True
 
 
-def is_selected(block: VecXYZi, against: VecXYZi) -> bool:
-    if select_along == Axis.X:
+def is_selected(block: VecXYZi, against: VecXYZi, along: Axis) -> bool:
+    if along == Axis.X:
         return against is not None and block[0] == against[0]
-    elif select_along == Axis.Y:
+    elif along == Axis.Y:
         return against is not None and block[1] == against[1]
     else:
         return against is not None and block[2] == against[2]
@@ -210,53 +210,57 @@ def handle_display():
         gl.glDepthMask(gl.GL_TRUE)
         for block, type in game.all_blocks:
             block_renderer.render(BlockView(block, type, 1.0))
-    elif last_selected is None and current_selected is not None:  # new selection
-        logging.debug("New selection")
-        current_selected_ = current_selected  # make type checker happy
+    elif current_selected is not None and last_selected is None:  # new selection
         # Opaque blocks
         gl.glDepthMask(gl.GL_TRUE)
-        for block, type in filter(lambda x: is_selected(x[0], current_selected_), game.all_blocks):
+        for block, type in filter(
+            lambda x: is_selected(x[0], current_selected[0], current_selected[1]), game.all_blocks  # type: ignore
+        ):
             block_renderer.render(BlockView(block, type, 1.0))
         # Transparent blocks
         gl.glDepthMask(gl.GL_FALSE)
         for block, type in filter(
-            lambda x: not is_selected(x[0], current_selected_), game.all_blocks
+            lambda x: not is_selected(x[0], current_selected[0], current_selected[1]),  # type: ignore
+            game.all_blocks,
         ):
             block_renderer.render(
                 BlockView(block, type, max(RENDER_UNSELECTED_ALPHA, 1.0 - selected_progress))
             )
         gl.glDepthMask(gl.GL_TRUE)
     elif last_selected is not None and current_selected is not None:  # re-selection
-        logging.debug("Re-selection")
-        current_selected_ = current_selected  # make type checker happy
-        last_selected_ = last_selected  # make type checker happy
         # Opaque blocks
         gl.glDepthMask(gl.GL_TRUE)
         for block, type in game.all_blocks:
-            if is_selected(block, last_selected_) and is_selected(block, current_selected_):
+            if is_selected(block, last_selected[0], last_selected[1]) and is_selected(
+                block, current_selected[0], current_selected[1]
+            ):
                 # untouched blocks
                 block_renderer.render(BlockView(block, type, 1.0))
-            elif not is_selected(block, last_selected_) and is_selected(block, current_selected_):
+            elif not is_selected(block, last_selected[0], last_selected[1]) and is_selected(
+                block, current_selected[0], current_selected[1]
+            ):
                 # fading in
                 block_renderer.render(BlockView(block, type, selected_progress))
         # Transparent blocks
         gl.glDepthMask(gl.GL_FALSE)
         for block, type in game.all_blocks:
-            if not is_selected(block, last_selected_) and not is_selected(block, current_selected_):
+            if not is_selected(block, last_selected[0], last_selected[1]) and not is_selected(
+                block, current_selected[0], current_selected[1]
+            ):
                 # untouched blocks
                 block_renderer.render(BlockView(block, type, RENDER_UNSELECTED_ALPHA))
-            elif is_selected(block, last_selected_) and not is_selected(block, current_selected_):
+            elif is_selected(block, last_selected[0], last_selected[1]) and not is_selected(
+                block, current_selected[0], current_selected[1]
+            ):
                 # fading out
                 block_renderer.render(
                     BlockView(block, type, max(RENDER_UNSELECTED_ALPHA, 1.0 - selected_progress))
                 )
         gl.glDepthMask(gl.GL_TRUE)
     elif last_selected is not None and current_selected is None:  # un-selection
-        logging.debug("Un-selection")
-        last_selected_ = last_selected  # make type checker happy
         gl.glDepthMask(gl.GL_TRUE)
         for block, type in game.all_blocks:
-            if is_selected(block, last_selected_):
+            if is_selected(block, last_selected[0], last_selected[1]):
                 block_renderer.render(BlockView(block, type, 1.0))
             else:
                 block_renderer.render(BlockView(block, type, selected_progress))
@@ -296,16 +300,22 @@ def handle_keyboard(key: bytes, x: int, y: int):
         elif key == b"1":
             select_along = Axis.X
             logging.info(f"Selecting along {select_along.name} axis.")
+            last_selected = current_selected
+            current_selected = None if last_selected is None else (last_selected[0], select_along)
             animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
             need_redraw = True
         elif key == b"2":
             select_along = Axis.Y
             logging.info(f"Selecting along {select_along.name} axis.")
+            last_selected = current_selected
+            current_selected = None if last_selected is None else (last_selected[0], select_along)
             animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
             need_redraw = True
         elif key == b"3":
             select_along = Axis.Z
             logging.info(f"Selecting along {select_along.name} axis.")
+            last_selected = current_selected
+            current_selected = None if last_selected is None else (last_selected[0], select_along)
             animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
             need_redraw = True
         elif key == b"m":
@@ -412,7 +422,7 @@ def handle_mouse(button: int, state: int, x: int, y: int):
                 ray_origin, ray_dir = cast_ray_from_screen_point(x, y)
                 block = find_first_intersection((ray_origin, ray_dir))
                 last_selected = current_selected
-                current_selected = block
+                current_selected = None if block is None else (block, select_along)
                 animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
                 logging.debug(f"Block selected: {block}")
                 update_needed = True

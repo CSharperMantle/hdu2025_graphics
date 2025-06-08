@@ -143,7 +143,7 @@ class GameModel:
     _current_piece: ty.Optional[Tetromino]
     _score: int
     _dims: VecXZYi
-    _on_frozen: ty.Callable[[ty.Self], TetrominoShape]
+    _on_frozen: ty.Callable[[ty.Self], tuple[TetrominoShape, ty.Iterable[Axis]]]
     _on_score: ty.Callable[[ty.Self], None]
     _on_failure: ty.Callable[[ty.Self], None]
 
@@ -164,7 +164,7 @@ class GameModel:
             for block in it:
                 if block:
                     yield (
-                        (it.multi_index[0], it.multi_index[1], it.multi_index[2]),
+                        (int(it.multi_index[0]), int(it.multi_index[1]), int(it.multi_index[2])),
                         self._frozen_types[it.multi_index],
                     )
 
@@ -173,7 +173,10 @@ class GameModel:
         width: int,
         depth: int,
         height: int,
-        on_frozen: ty.Callable[[ty.Self], TetrominoShape] = lambda _: TetrominoShape.I,
+        on_frozen: ty.Callable[[ty.Self], tuple[TetrominoShape, ty.Iterable[Axis]]] = lambda _: (
+            TetrominoShape.I,
+            (),
+        ),
         on_score: ty.Callable[[ty.Self], None] = lambda _: None,
         on_failure: ty.Callable[[ty.Self], None] = lambda _: None,
     ):
@@ -225,7 +228,11 @@ class GameModel:
             self._frozen[block] = True
             self._frozen_types[block] = type
         self._current_piece = None
-        self.spawn_piece(self._on_frozen(self))
+        piece, rotation_plan = self._on_frozen(self)
+        self.spawn_piece(piece)
+        for axis in rotation_plan:
+            if not self.rotate(axis):
+                break
         self._clear_planes()
 
     def spawn_piece(self, shape: TetrominoShape):

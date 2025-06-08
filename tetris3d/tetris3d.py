@@ -16,11 +16,15 @@ from PIL import Image
 from render import *
 from type import *
 
+
+def gen_rand_piece(_: object):
+    shape = random.choice(list(TetrominoShape))
+    rotations = random.choices([Axis.X, Axis.Y, Axis.Z], k=random.randrange(0, 6))
+    return shape, rotations
+
+
 window_size = INITIAL_WINDOW_SIZE
-game = GameModel(
-    *GAME_AREA_SIZE,
-    lambda _: random.choice(list(TetrominoShape)),
-)
+game = GameModel(*GAME_AREA_SIZE, gen_rand_piece)
 
 camera_distance = INITIAL_DISTANCE
 camera_yaw = INITIAL_YAW
@@ -38,6 +42,19 @@ border_renderer: ty.Optional[BorderRenderer] = None
 last_tick = 0
 paused = False
 show_marker = False
+selected: ty.Optional[VecXYZi] = None
+select_along: Axis = Axis.Y
+
+
+def is_selected(block: VecXYZi) -> bool:
+    global selected
+
+    if select_along == Axis.X:
+        return selected is not None and block[0] == selected[0]
+    elif select_along == Axis.Y:
+        return selected is not None and block[1] == selected[1]
+    else:
+        return selected is not None and block[2] == selected[2]
 
 
 def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir:
@@ -116,11 +133,11 @@ def cast_ray_from_screen_point(x: int, y: int) -> Ray:
 
 def find_first_intersection(
     ray: Ray,
-) -> ty.Optional[VecXYZf]:
+) -> ty.Optional[VecXYZi]:
     closest_dist = float("inf")
     closest_block = None
     for block, _ in game.all_blocks:
-        pos = (float(block[0]), float(block[2]), float(block[1]))
+        pos = (block[0], block[2], block[1])
         size = (RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE)
         if ray_intersects_cube(ray, pos, size):
             block_center = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
@@ -172,8 +189,16 @@ def handle_display():
             marker_renderer.render((float(x), float(y), float(z)))
 
     assert block_renderer is not None
-    for block, type in game.all_blocks:
-        block_renderer.render((float(block[0]), float(block[2]), float(block[1])), type)
+    if selected is None:
+        for block, type in game.all_blocks:
+            block_renderer.render(BlockView(block, type, 1.0))
+    else:
+        for block, type in filter(lambda x: is_selected(x[0]), game.all_blocks):
+            block_renderer.render(BlockView(block, type, 1.0))
+        gl.glDepthMask(gl.GL_FALSE)
+        for block, type in filter(lambda x: not is_selected(x[0]), game.all_blocks):
+            block_renderer.render(BlockView(block, type, RENDER_UNSELECTED_ALPHA))
+        gl.glDepthMask(gl.GL_TRUE)  # Re-enable depth writes
 
     glut.glutSwapBuffers()
 
@@ -191,39 +216,51 @@ def handle_reshape(width: int, height: int):
 
 
 def handle_keyboard(key: bytes, x: int, y: int):
-    global paused, show_marker
+    global paused, show_marker, selected, select_along
+
+    need_redraw = False
 
     if paused:
         if key == b"`":
             paused = False
+            selected = None
             logging.info("Game unpaused.")
+        elif key == b"1":
+            select_along = Axis.X
+            logging.info(f"Selecting along {select_along.name} axis.")
+            need_redraw = True
+        elif key == b"2":
+            select_along = Axis.Y
+            logging.info(f"Selecting along {select_along.name} axis.")
+            need_redraw = True
+        elif key == b"3":
+            select_along = Axis.Z
+            logging.info(f"Selecting along {select_along.name} axis.")
+            need_redraw = True
         elif key == b"\x1b":
             quit()
-        return
-
-    need_redraw = False
-
-    if key == b"\x1b":
-        quit()
-    elif key == b"q":
-        game.rotate(Axis.Y)
-        need_redraw = True
-    elif key == b"e":
-        game.rotate(Axis.Z)
-        need_redraw = True
-    elif key in (b"w", b"a", b"s", b"d"):
-        game.move(get_move_dir(camera_yaw, key))
-        need_redraw = True
-    elif key == b" ":
-        game.drop()
-        need_redraw = True
-    elif key == b"m":
-        show_marker = not show_marker
-        need_redraw = True
-    elif key == b"`":
-        paused = True
-        logging.info("Game paused. Press ` to resume.")
-        need_redraw = True
+    else:
+        if key == b"q":
+            game.rotate(Axis.Y)
+            need_redraw = True
+        elif key == b"e":
+            game.rotate(Axis.Z)
+            need_redraw = True
+        elif key in (b"w", b"a", b"s", b"d"):
+            game.move(get_move_dir(camera_yaw, key))
+            need_redraw = True
+        elif key == b" ":
+            game.drop()
+            need_redraw = True
+        elif key == b"m":
+            show_marker = not show_marker
+            need_redraw = True
+        elif key == b"`":
+            paused = True
+            logging.info("Game paused. Press ` to resume.")
+            need_redraw = True
+        elif key == b"\x1b":
+            quit()
 
     if need_redraw:
         glut.glutPostRedisplay()
@@ -279,19 +316,27 @@ def handle_special(key: int, x: int, y: int):
 
 
 def handle_mouse(button: int, state: int, x: int, y: int):
-    global mouse_last_pos, mouse_lb_down
+    global mouse_last_pos, mouse_lb_down, selected
+
+    update_needed = False
 
     if button == glut.GLUT_LEFT_BUTTON:
         if state == glut.GLUT_DOWN:
             mouse_lb_down = True
             mouse_last_pos = (x, y)
-            ray_origin, ray_dir = cast_ray_from_screen_point(x, y)
-            block = find_first_intersection((ray_origin, ray_dir))
-            if block is not None:
-                logging.debug(f"Block selected: {block}")  # TODO: handle selection
         elif state == glut.GLUT_UP:
             mouse_lb_down = False
-    glut.glutPostRedisplay()
+    elif button == glut.GLUT_RIGHT_BUTTON:
+        if state == glut.GLUT_DOWN:
+            if paused:
+                ray_origin, ray_dir = cast_ray_from_screen_point(x, y)
+                block = find_first_intersection((ray_origin, ray_dir))
+                selected = block
+                logging.debug(f"Block selected: {block}")
+                update_needed = True
+
+    if update_needed:
+        glut.glutPostRedisplay()
 
 
 def handle_motion(x: int, y: int):
@@ -317,7 +362,7 @@ def handle_wheel(button: int, dir: int, x: int, y: int):
     glut.glutPostRedisplay()
 
 
-def handle_timer(arg: ty.Never):
+def handle_timer(arg: object):
     global last_tick
 
     if not paused and time.perf_counter_ns() - last_tick > 1_000_000_000:
@@ -397,7 +442,10 @@ def main():
 
     handle_reshape(window_size[0], window_size[1])
 
-    game.spawn_piece(random.choice(list(TetrominoShape)))
+    shape, rotations = gen_rand_piece(None)
+    game.spawn_piece(shape)
+    for axis in rotations:
+        game.rotate(axis)
 
     glut.glutMainLoop()
 

@@ -4,6 +4,8 @@ from const import *
 from model import TetrominoShape
 from OpenGL.arrays import vbo
 from type import *
+from view import *
+import itertools as it
 
 
 class BlockRenderer:
@@ -60,7 +62,14 @@ class BlockRenderer:
             [
                 v
                 for vertex in self.VERTICES
-                for v in (list(vertex[0]) + list(vertex[1]) + list(vertex[2]))
+                for v in it.chain(
+                    (
+                        min(1.0 - RENDER_BLOCK_GAP / 2, max(RENDER_BLOCK_GAP / 2, v))
+                        for v in vertex[0]
+                    ),
+                    vertex[1],
+                    vertex[2],
+                )
             ],
             dtype=np.float32,
         )
@@ -68,12 +77,13 @@ class BlockRenderer:
         self._vertex_vbo = vbo.VBO(vertices_data)
         self._texture_id = texture_id
 
-    def render(self, pos: tuple[float, float, float], type: TetrominoShape):
-        gl.glPushMatrix()
-        gl.glTranslatef(*pos)
+    def render(self, block: BlockView):
+        pos = block.pos
 
-        color = self.COLORS.get(type, COLOR_WHITE)
-        gl.glColor3f(*color)
+        gl.glPushMatrix()
+        gl.glTranslate(pos[0], pos[2], pos[1])
+
+        gl.glColor4f(*block.color, block.alpha)
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, MATERIAL_AMBIENT)
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, MATERIAL_DIFFUSE)
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, MATERIAL_SPECULAR)

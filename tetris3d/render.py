@@ -1,3 +1,5 @@
+import itertools as it
+
 import numpy as np
 import OpenGL.GL as gl
 from const import *
@@ -5,7 +7,6 @@ from model import TetrominoShape
 from OpenGL.arrays import vbo
 from type import *
 from view import *
-import itertools as it
 
 
 class BlockRenderer:

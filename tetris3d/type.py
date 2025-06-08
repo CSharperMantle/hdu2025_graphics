@@ -1,5 +1,3 @@
-import numpy as np
-
 VecXYZf = tuple[float, float, float]
 VecXYZi = tuple[int, int, int]
 VecXZYi = tuple[int, int, int]

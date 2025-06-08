@@ -3,13 +3,11 @@ import OpenGL.GL as gl
 from const import *
 from model import TetrominoShape
 from OpenGL.arrays import vbo
+from type import *
 
 
 class BlockRenderer:
-    VertexXYZ = tuple[float, float, float]
-    VertexUV = tuple[float, float]
-    VertexNormal = tuple[float, float, float]
-    Vertex = tuple[VertexXYZ, VertexUV, VertexNormal]
+    Vertex = tuple[VecXYZf, VecUVf, VecXYZf]  # (pos, yv, normal)
 
     VERTICES: list[Vertex] = [
         # Front
@@ -104,9 +102,7 @@ class BlockRenderer:
 
 
 class MarkerRenderer:
-    VertexXYZ = tuple[float, float, float]
-    VertexColor = tuple[float, float, float]
-    Vertex = tuple[VertexXYZ, VertexColor]
+    Vertex = tuple[VecXYZf, ColorRGBf]
 
     VERTICES: list[Vertex] = [
         ((0.0, 0.0, 0.0), COLOR_RED),
@@ -153,10 +149,7 @@ class MarkerRenderer:
 
 
 class BorderRenderer:
-
-    VertexXYZ = tuple[float, float, float]
-    VertexColor = tuple[float, float, float]
-    Vertex = tuple[VertexXYZ, VertexColor]
+    Vertex = tuple[VecXYZf, ColorRGBf]
 
     VERTICES: list[Vertex] = [
         ((0.0, 0.0, 0.0), COLOR_RED),

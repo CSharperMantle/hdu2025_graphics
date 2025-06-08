@@ -4,8 +4,7 @@ from enum import IntEnum, auto
 
 import numpy as np
 import numpy.typing as npt
-
-VecXZY = tuple[int, int, int]  # (x, z, y)
+from type import *
 
 
 class TetrominoShape(IntEnum):
@@ -32,7 +31,7 @@ class MoveDir(IntEnum):
     Y_NEG = auto()
 
 
-def _get_dims(blocks: npt.NDArray[np.int_]) -> VecXZY:
+def _get_dims(blocks: npt.NDArray[np.int_]) -> VecXZYi:
     if len(blocks) == 0:
         return (0, 0, 0)
     min_coords = blocks.min(axis=0)
@@ -42,7 +41,7 @@ def _get_dims(blocks: npt.NDArray[np.int_]) -> VecXZY:
 
 
 class Tetromino:
-    SHAPES: dict[TetrominoShape, list[VecXZY]] = {
+    SHAPES: dict[TetrominoShape, list[VecXZYi]] = {
         TetrominoShape.I: [(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)],
         TetrominoShape.O: [(0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0)],
         TetrominoShape.T: [(0, 0, 0), (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)],
@@ -52,11 +51,11 @@ class Tetromino:
         TetrominoShape.Z: [(0, 0, 0), (1, 0, 0), (0, 1, 0), (-1, 1, 0)],
     }
 
-    DIMS: dict[TetrominoShape, VecXZY] = {
+    DIMS: dict[TetrominoShape, VecXZYi] = {
         shape: _get_dims(np.array(blocks, dtype=int)) for shape, blocks in SHAPES.items()
     }
 
-    WALL_KICK_OFFSETS: list[VecXZY] = [
+    WALL_KICK_OFFSETS: list[VecXZYi] = [
         (1, 0, 0),  # Right
         (-1, 0, 0),  # Left
         (0, 1, 0),  # Forward (Z+)
@@ -100,7 +99,7 @@ class Tetromino:
     _shape: TetrominoShape
 
     @property
-    def world_blocks(self) -> ty.Iterator[tuple[VecXZY, TetrominoShape]]:
+    def world_blocks(self) -> ty.Iterator[tuple[VecXZYi, TetrominoShape]]:
         for block in self._blocks:
             yield (tuple(self._position + block), self._shape)
 
@@ -108,7 +107,7 @@ class Tetromino:
     def shape(self) -> TetrominoShape:
         return self._shape
 
-    def __init__(self, shape: TetrominoShape, position: VecXZY):
+    def __init__(self, shape: TetrominoShape, position: VecXZYi):
         self._blocks = np.array(self.SHAPES[shape], dtype=int)
         self._position = np.array(position, dtype=int)
         self._shape = shape
@@ -143,7 +142,7 @@ class GameModel:
     _frozen_types: npt.NDArray[np.uint8]
     _current_piece: ty.Optional[Tetromino]
     _score: int
-    _dims: VecXZY
+    _dims: VecXZYi
     _on_frozen: ty.Callable[[ty.Self], TetrominoShape]
     _on_score: ty.Callable[[ty.Self], None]
     _on_failure: ty.Callable[[ty.Self], None]
@@ -153,11 +152,11 @@ class GameModel:
         return self._score
 
     @property
-    def dims(self) -> VecXZY:
+    def dims(self) -> VecXZYi:
         return self._dims
 
     @property
-    def all_blocks(self) -> ty.Iterator[tuple[VecXZY, TetrominoShape]]:
+    def all_blocks(self) -> ty.Iterator[tuple[VecXZYi, TetrominoShape]]:
         if self._current_piece is not None:
             for block in self._current_piece.world_blocks:
                 yield block

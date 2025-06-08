@@ -11,12 +11,10 @@ import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 from const import *
-from model import Axis, GameModel, MoveDir, TetrominoShape
+from model import *
 from PIL import Image
 from render import *
-
-VecXYZ = tuple[float, float, float]  # (x, y, z)
-Ray = tuple[VecXYZ, VecXYZ]  # (origin, dir)
+from type import *
 
 window_size = INITIAL_WINDOW_SIZE
 game = GameModel(
@@ -84,8 +82,8 @@ def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir
 
 def ray_intersects_cube(
     ray: Ray,
-    origin: VecXYZ,
-    size: VecXYZ,
+    origin: VecXYZf,
+    size: VecXYZf,
 ) -> bool:
     start = np.array(ray[0], dtype=np.float32)
     dir = np.array(ray[1], dtype=np.float32)
@@ -118,7 +116,7 @@ def cast_ray_from_screen_point(x: int, y: int) -> Ray:
 
 def find_first_intersection(
     ray: Ray,
-) -> ty.Optional[VecXYZ]:
+) -> ty.Optional[VecXYZf]:
     closest_dist = float("inf")
     closest_block = None
     for block, _ in game.all_blocks:

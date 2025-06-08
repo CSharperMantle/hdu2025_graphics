@@ -20,9 +20,10 @@ $ python ./bezier/bezier_interactive.py
 * Middle mouse button: Finish the current spline and create another connected one
 * Right mouse button: Remove last point from the current spline
 
-![interactive Bezier curve](assets/bezier_interactive.png)
-
-*Figure 1: Screenshot for interactive Bezier curve demo.*
+<figure>
+    <img src="assets/bezier_interactive.png" alt="interactive Bezier curve">
+    <figcaption>Figure 1: Screenshot for interactive Bezier curve demo.</figcaption>
+</figure>
 
 ### transform
 
@@ -49,9 +50,10 @@ $ python ./transform/transform.py
   * `p`: Switch between perspective and parallel projections
 * `ESC`: Exit program
 
-![transformations demo](assets/transform.png)
-
-*Figure 2: Screenshot for transformation demo.*
+<figure>
+    <img src="assets/transform.png" alt="transformations demo">
+    <figcaption>Figure 2: Screenshot for transformation demo.</figcaption>
+</figure>
 
 ### tetris3d
 
@@ -78,10 +80,12 @@ $ python ./tetris3d/tetris3d.py
   * `z`: Toggle landing locator visibility
 * `ESC`: Exit program
 
-![Tetris3D demo](assets/tetris3d-1.png)!
+<figure>
+    <img src="assets/tetris3d-1.png" alt="Tetris3D demo">
+    <figcaption>Figure 3: Screenshot for Tetris3D.</figcaption>
+</figure>
 
-*Figure 3: Screenshot for Tetris3D.*
-
-![Tetris3D X-Ray mode demo](assets/tetris3d-xray.png)
-
-*Figure 4: X-Ray mode of Tetris3D.*
+<figure>
+    <img src="assets/tetris3d-xray.png" alt="Tetris3D X-Ray mode demo">
+    <figcaption>Figure 4: X-Ray mode of Tetris3D.</figcaption>
+</figure>

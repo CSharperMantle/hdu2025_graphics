@@ -10,6 +10,7 @@ import numpy as np
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
+from animation import *
 from const import *
 from model import *
 from PIL import Image
@@ -48,23 +49,34 @@ marker_renderer: ty.Optional[MarkerRenderer] = None
 border_renderer: ty.Optional[BorderRenderer] = None
 locator_renderer: ty.Optional[LocatorRenderer] = None
 
-last_tick = 0
+animator = AnimationEngine()
+
+last_game_tick_ns = 0
+last_animation_tick_ns = 0
 paused = False
 show_marker = False
 show_locator = True
-selected: ty.Optional[VecXYZi] = None
+last_selected: ty.Optional[VecXYZi] = None
+current_selected: ty.Optional[VecXYZi] = None
 select_along: Axis = Axis.Y
+selected_progress = 0.0
 
 
-def is_selected(block: VecXYZi) -> bool:
-    global selected
+def selection_animator(progress: float) -> bool:
+    global selected_progress
 
+    selected_progress = progress
+    glut.glutPostRedisplay()
+    return True
+
+
+def is_selected(block: VecXYZi, against: VecXYZi) -> bool:
     if select_along == Axis.X:
-        return selected is not None and block[0] == selected[0]
+        return against is not None and block[0] == against[0]
     elif select_along == Axis.Y:
-        return selected is not None and block[1] == selected[1]
+        return against is not None and block[1] == against[1]
     else:
-        return selected is not None and block[2] == selected[2]
+        return against is not None and block[2] == against[2]
 
 
 def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir:
@@ -193,16 +205,61 @@ def handle_display():
             marker_renderer.render((float(x), float(y), float(z)))
 
     assert block_renderer is not None
-    if selected is None:
+
+    if last_selected is None and current_selected is None:  # no selection
+        gl.glDepthMask(gl.GL_TRUE)
         for block, type in game.all_blocks:
             block_renderer.render(BlockView(block, type, 1.0))
-    else:
-        for block, type in filter(lambda x: is_selected(x[0]), game.all_blocks):
-            block_renderer.render(BlockView(block, type, 1.0))
-        gl.glDepthMask(gl.GL_FALSE)
-        for block, type in filter(lambda x: not is_selected(x[0]), game.all_blocks):
-            block_renderer.render(BlockView(block, type, RENDER_UNSELECTED_ALPHA))
+    elif last_selected is None and current_selected is not None:  # new selection
+        logging.debug("New selection")
+        current_selected_ = current_selected  # make type checker happy
+        # Opaque blocks
         gl.glDepthMask(gl.GL_TRUE)
+        for block, type in filter(lambda x: is_selected(x[0], current_selected_), game.all_blocks):
+            block_renderer.render(BlockView(block, type, 1.0))
+        # Transparent blocks
+        gl.glDepthMask(gl.GL_FALSE)
+        for block, type in filter(
+            lambda x: not is_selected(x[0], current_selected_), game.all_blocks
+        ):
+            block_renderer.render(
+                BlockView(block, type, max(RENDER_UNSELECTED_ALPHA, 1.0 - selected_progress))
+            )
+        gl.glDepthMask(gl.GL_TRUE)
+    elif last_selected is not None and current_selected is not None:  # re-selection
+        logging.debug("Re-selection")
+        current_selected_ = current_selected  # make type checker happy
+        last_selected_ = last_selected  # make type checker happy
+        # Opaque blocks
+        gl.glDepthMask(gl.GL_TRUE)
+        for block, type in game.all_blocks:
+            if is_selected(block, last_selected_) and is_selected(block, current_selected_):
+                # untouched blocks
+                block_renderer.render(BlockView(block, type, 1.0))
+            elif not is_selected(block, last_selected_) and is_selected(block, current_selected_):
+                # fading in
+                block_renderer.render(BlockView(block, type, selected_progress))
+        # Transparent blocks
+        gl.glDepthMask(gl.GL_FALSE)
+        for block, type in game.all_blocks:
+            if not is_selected(block, last_selected_) and not is_selected(block, current_selected_):
+                # untouched blocks
+                block_renderer.render(BlockView(block, type, RENDER_UNSELECTED_ALPHA))
+            elif is_selected(block, last_selected_) and not is_selected(block, current_selected_):
+                # fading out
+                block_renderer.render(
+                    BlockView(block, type, max(RENDER_UNSELECTED_ALPHA, 1.0 - selected_progress))
+                )
+        gl.glDepthMask(gl.GL_TRUE)
+    elif last_selected is not None and current_selected is None:  # un-selection
+        logging.debug("Un-selection")
+        last_selected_ = last_selected  # make type checker happy
+        gl.glDepthMask(gl.GL_TRUE)
+        for block, type in game.all_blocks:
+            if is_selected(block, last_selected_):
+                block_renderer.render(BlockView(block, type, 1.0))
+            else:
+                block_renderer.render(BlockView(block, type, selected_progress))
 
     if show_locator:
         assert locator_renderer is not None
@@ -226,26 +283,30 @@ def handle_reshape(width: int, height: int):
 
 
 def handle_keyboard(key: bytes, x: int, y: int):
-    global paused, show_marker, selected, select_along, show_locator
+    global paused, show_marker, last_selected, current_selected, select_along, show_locator
 
     need_redraw = False
 
     if paused:
         if key == b"`":
             paused = False
-            selected = None
+            last_selected = None
+            current_selected = None
             logging.info("Game unpaused.")
         elif key == b"1":
             select_along = Axis.X
             logging.info(f"Selecting along {select_along.name} axis.")
+            animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
             need_redraw = True
         elif key == b"2":
             select_along = Axis.Y
             logging.info(f"Selecting along {select_along.name} axis.")
+            animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
             need_redraw = True
         elif key == b"3":
             select_along = Axis.Z
             logging.info(f"Selecting along {select_along.name} axis.")
+            animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
             need_redraw = True
         elif key == b"m":
             show_marker = not show_marker
@@ -335,7 +396,7 @@ def handle_special(key: int, x: int, y: int):
 
 
 def handle_mouse(button: int, state: int, x: int, y: int):
-    global mouse_last_pos, mouse_lb_down, selected
+    global mouse_last_pos, mouse_lb_down, last_selected, current_selected
 
     update_needed = False
 
@@ -350,7 +411,9 @@ def handle_mouse(button: int, state: int, x: int, y: int):
             if paused:
                 ray_origin, ray_dir = cast_ray_from_screen_point(x, y)
                 block = find_first_intersection((ray_origin, ray_dir))
-                selected = block
+                last_selected = current_selected
+                current_selected = block
+                animator.fire(Animation(SELECTION_ANIMATION_DURATION_US, selection_animator))
                 logging.debug(f"Block selected: {block}")
                 update_needed = True
 
@@ -382,14 +445,22 @@ def handle_wheel(button: int, dir: int, x: int, y: int):
 
 
 def handle_timer(arg: object):
-    global last_tick
+    global last_game_tick_ns, last_animation_tick_ns
 
-    if not paused and time.perf_counter_ns() - last_tick > 1_000_000_000:
+    tick = time.perf_counter_ns()
+
+    elapsed_game_ns = tick - last_game_tick_ns
+    elapsed_animation_ns = tick - last_animation_tick_ns
+
+    if not paused and elapsed_game_ns > GAME_TICK_PERIOD_MS * 1_000_000:
         game.update()
-        last_tick = time.perf_counter_ns()
         glut.glutPostRedisplay()
+        last_game_tick_ns = tick
 
-    glut.glutTimerFunc(REFRESH_PERIOD, handle_timer, None)
+    animator.tick(elapsed_animation_ns // 1000)
+    last_animation_tick_ns = tick
+
+    glut.glutTimerFunc(FRAME_PERIOD_MS, handle_timer, None)
 
 
 def main():
@@ -458,7 +529,7 @@ def main():
     glut.glutMouseFunc(handle_mouse)
     glut.glutMotionFunc(handle_motion)
     glut.glutMouseWheelFunc(handle_wheel)
-    glut.glutTimerFunc(REFRESH_PERIOD, handle_timer, None)
+    glut.glutTimerFunc(FRAME_PERIOD_MS, handle_timer, None)
 
     handle_reshape(window_size[0], window_size[1])
 

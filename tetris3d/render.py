@@ -45,16 +45,6 @@ class BlockRenderer:
         ((0.0, 0.0, 0.0), (0.0, 0.0), (-1.0, 0.0, 0.0)),
     ]
 
-    COLORS: dict[TetrominoShape, tuple[float, float, float]] = {
-        TetrominoShape.I: COLOR_CYAN,
-        TetrominoShape.O: COLOR_YELLOW,
-        TetrominoShape.T: COLOR_PURPLE,
-        TetrominoShape.L: COLOR_ORANGE,
-        TetrominoShape.J: COLOR_BLUE_LIGHTER,
-        TetrominoShape.S: COLOR_GREEN,
-        TetrominoShape.Z: COLOR_RED,
-    }
-
     _texture_id: int
     _vertex_vbo: vbo.VBO
 

@@ -9,7 +9,7 @@ from view import *
 
 
 class BlockRenderer:
-    Vertex = tuple[VecXYZf, VecUVf, VecXYZf]  # (pos, yv, normal)
+    Vertex = tuple[VecXYZf, VecUVf, VecXYZf]  # (pos, uv, normal)
 
     VERTICES: list[Vertex] = [
         # Front

@@ -119,20 +119,21 @@ def get_move_dir(yaw: float, key: ty.Literal[b"w", b"a", b"s", b"d"]) -> MoveDir
             return MoveDir.Z_POS
 
 
-def ray_intersects_cube(ray: Ray, origin: VecXYZf, size: VecXYZf) -> bool:
+def ray_cube_intersect_aabb(ray: Ray, l: VecXYZf, size: VecXYZf) -> bool:
     start = np.array(ray[0], dtype=np.float32)
     dir = np.array(ray[1], dtype=np.float32)
-    origin_ = np.array(origin, dtype=np.float32)
+    l_ = np.array(l, dtype=np.float32)
     size_ = np.array(size, dtype=np.float32)
-    max_bound = origin_ + size_
-    mask_zero = np.abs(dir) < 1e-6
-    if np.any(mask_zero & ((start < origin_) | (start > max_bound))):
+
+    h = l_ + size_
+    mask_parallels = np.abs(dir) < 1e-6
+    if np.any(mask_parallels & ((start < l_) | (start > h))):
         return False
-    dir_safe = np.where(mask_zero, 1.0, dir)
-    t1 = np.where(mask_zero, -np.inf, (origin_ - start) / dir_safe)
-    t2 = np.where(mask_zero, np.inf, (max_bound - start) / dir_safe)
-    t_near = np.minimum(t1, t2)
-    t_far = np.maximum(t1, t2)
+    dir_safe = np.where(mask_parallels, 1.0, dir)
+    tl = np.where(mask_parallels, -np.inf, (l_ - start) / dir_safe)
+    th = np.where(mask_parallels, np.inf, (h - start) / dir_safe)
+    t_near = np.minimum(tl, th)
+    t_far = np.maximum(tl, th)
     t_min = np.max(t_near)
     t_max = np.min(t_far)
     return (t_min <= t_max) and (t_max >= 0)
@@ -141,12 +142,12 @@ def ray_intersects_cube(ray: Ray, origin: VecXYZf, size: VecXYZf) -> bool:
 def cast_ray_from_screen_point(x: int, y: int) -> Ray:
     viewport = gl.glGetIntegerv(gl.GL_VIEWPORT)
     y = viewport[3] - y
-    near_point = glu.gluUnProject(x, y, 0.0)
-    far_point = glu.gluUnProject(x, y, 1.0)
-    ray_origin = np.array(near_point, dtype=np.float32)
-    ray_direction = np.array(far_point, dtype=np.float32) - ray_origin
-    ray_direction = ray_direction / np.linalg.norm(ray_direction)
-    return tuple(ray_origin), tuple(ray_direction)
+    near = glu.gluUnProject(x, y, 0.0)
+    far = glu.gluUnProject(x, y, 1.0)
+    orig = np.array(near, dtype=np.float32)
+    dir = np.array(far, dtype=np.float32) - orig
+    dir = dir / np.linalg.norm(dir)
+    return tuple(orig), tuple(dir)
 
 
 def find_first_intersection(ray: Ray) -> ty.Optional[VecXYZi]:
@@ -155,7 +156,7 @@ def find_first_intersection(ray: Ray) -> ty.Optional[VecXYZi]:
     for block, _ in game.all_blocks:
         pos = (block[0], block[2], block[1])
         size = (RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE, RENDER_BLOCK_SIZE)
-        if ray_intersects_cube(ray, pos, size):
+        if ray_cube_intersect_aabb(ray, pos, size):
             block_center = (pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5)
             dist = np.linalg.norm(np.array(block_center) - np.array(ray[0]))
             if dist < closest_dist:

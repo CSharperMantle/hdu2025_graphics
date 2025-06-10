@@ -1,3 +1,4 @@
+// Template by <https://github.com/woshiluo/hdu-report-typst>
 #import "template/template.typ": *
 
 #show: project.with(

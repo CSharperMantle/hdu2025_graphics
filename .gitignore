@@ -1,3 +1,5 @@
+*.drawio.bkp
+
 # https://github.com/toptal/gitignore/blob/4ba9bcf3455075a5288f3d59907049f5dcb8b1fc/templates/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/

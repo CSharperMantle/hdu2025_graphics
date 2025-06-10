@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tetrominoes with checkerboard squares.-->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Tetromino with Checkerboard Squares" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="230" height="50">
+<g stroke="#000" stroke-width="1">
+   <path fill="#0FF" d="M5,5 h10 v40 h-10 v-40z"/> <!-- I -->
+   <path fill="#FF0" d="M25, 15 h20 v20 h-20 v-20z"/> <!-- O -->  
+   <path fill="#F0F" d="M55,15 h30 v10 h-10 v10 h-10 v-10 h-10 v-10z"/> <!-- T -->	
+   <path fill="#0F0" d="M105,15 h20 v10 h-10 v10 h-20 v-10 h10 v-10z"/> <!-- S -->
+   <path fill="#F80" d="M135, 10 h10 v20 h10 v10 h-20 v-30z"/> <!-- L -->
+   <path fill="#00F" d="M175, 10 h10 v30 h-20 v-10 h10 v-20z"/> <!-- J -->  
+   <path fill="#F00" d="M195,15 h20 v10 h10 v10 h-20 v-10 h-10 v-10z"/> <!-- Z -->
+</g>
+<g stroke="#111" stroke-width="0">
+   <path fill="#111" d="M5, 5 h10 v10 h-10 v-10z"/> <!-- I upper block -->
+   <path fill="#111" d="M5, 25 h10 v10 h-10 v-10z"/> <!-- I lower block -->
+   <path fill="#111" d="M25, 15 h10 v10 h-10 v-10z"/> <!-- O upper left block -->  
+   <path fill="#111" d="M35, 25 h10 v10 h-10 v-10z"/> <!-- O lower right block -->  
+   <path fill="#111" d="M55, 15 h10 v10 h-10 v-10z"/> <!-- T upper left block -->
+   <path fill="#111" d="M65, 25 h10 v10 h-10 v-10z"/> <!-- T lower middle block -->
+   <path fill="#111" d="M75, 15 h10 v10 h-10 v-10z"/> <!-- T upper right block -->
+   <path fill="#111" d="M95, 25 h10 v10 h-10 v-10z"/> <!-- S lower left block -->
+   <path fill="#111" d="M105, 15 h10 v10 h-10 v-10z"/> <!-- S upper right block -->
+   <path fill="#111" d="M135, 10 h10 v10 h-10 v-10z"/> <!-- L upper block -->
+   <path fill="#111" d="M135, 30 h10 v10 h-10 v-10z"/> <!-- L lower block -->
+   <path fill="#111" d="M175, 10 h10 v10 h-10 v-10z"/> <!-- J lower block -->
+   <path fill="#111" d="M175, 30 h10 v10 h-10 v-10z"/> <!-- J upper block -->
+   <path fill="#111" d="M195, 15 h10 v10 h-10 v-10z"/> <!-- Z upper left block -->
+   <path fill="#111" d="M205, 25 h10 v10 h-10 v-10z"/> <!-- Z lower right block -->
+</g>
+<g stroke="#000" fill-opacity="0" stroke-width="1">
+   <path d="M5,5 h10 v40 h-10 v-40z"/> <!-- I -->
+   <path d="M25, 15 h20 v20 h-20 v-20z"/> <!-- O -->  
+   <path d="M55,15 h30 v10 h-10 v10 h-10 v-10 h-10 v-10z"/> <!-- T -->	
+   <path d="M105,15 h20 v10 h-10 v10 h-20 v-10 h10 v-10z"/> <!-- S -->
+   <path d="M135, 10 h10 v20 h10 v10 h-20 v-30z"/> <!-- L -->
+   <path d="M160, 5 v40z"/> <!-- divider line between L and J -->
+   <path d="M175, 10 h10 v30 h-20 v-10 h10 v-20z"/> <!-- J -->  
+   <path d="M195,15 h20 v10 h10 v10 h-20 v-10 h-10 v-10z"/> <!-- Z -->
+</g>
+</svg>
